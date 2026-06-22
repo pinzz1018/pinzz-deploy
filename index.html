@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deploy ke GitHub Pages</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1117; --surface: #161b22; --surface2: #21262d; --border: #30363d;
+    --accent: #58a6ff; --accent2: #79c0ff; --text: #e6edf3; --muted: #8b949e;
+    --success: #3fb950; --error: #f85149; --radius: 12px;
+  }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 40px 16px 60px; }
+  header { text-align: center; margin-bottom: 40px; }
+  .logo { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .logo-icon { width: 40px; height: 40px; background: linear-gradient(135deg, #238636, #2ea043); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .logo-text { font-size: 22px; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  header p { color: var(--muted); font-size: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 22px; }
+  .field { display: flex; flex-direction: column; gap: 8px; }
+  label { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  input[type="text"], input[type="password"] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 12px 14px; outline: none; transition: border-color 0.2s; width: 100%; }
+  input[type="text"]:focus, input[type="password"]:focus { border-color: var(--accent); }
+  .token-wrap { position: relative; }
+  .token-wrap input { padding-right: 44px; }
+  .toggle-eye { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 4px; }
+  .upload-area { border: 2px dashed var(--border); border-radius: 10px; padding: 32px 20px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; }
+  .upload-area:hover, .upload-area.dragover { border-color: var(--accent); background: rgba(88,166,255,0.05); }
+  .upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { font-size: 32px; margin-bottom: 10px; }
+  .upload-label { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .upload-hint { font-size: 12px; color: var(--muted); }
+  .file-selected { display: flex; align-items: center; gap: 10px; background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3); border-radius: 8px; padding: 12px 14px; font-size: 13px; }
+  .file-selected .fname { font-family: 'JetBrains Mono', monospace; color: var(--accent2); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-clear { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 0; line-height: 1; }
+  .btn-deploy { background: #238636; border: 1px solid #2ea043; border-radius: 10px; color: #fff; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700; padding: 15px; cursor: pointer; width: 100%; transition: background 0.2s, transform 0.1s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn-deploy:hover:not(:disabled) { background: #2ea043; }
+  .btn-deploy:active:not(:disabled) { transform: scale(0.98); }
+  .btn-deploy:disabled { opacity: 0.5; cursor: not-allowed; }
+  .status { border-radius: 10px; padding: 16px; font-size: 13px; display: none; }
+  .status.loading { display: flex; align-items: center; gap: 12px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); }
+  .status.success { display: block; background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3); color: var(--success); }
+  .status.error { display: block; background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); color: var(--error); }
+  .status.success .url-result { margin-top: 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .status.success a { color: var(--accent2); word-break: break-all; }
+  .spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hint { font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .hint a { color: var(--accent2); text-decoration: none; }
+  .hint a:hover { text-decoration: underline; }
+  hr { border: none; border-top: 1px solid var(--border); }
+  .info-box { font-size: 12px; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; line-height: 1.7; }
+  .info-box span { color: var(--accent2); font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-icon">🐙</div>
+    <span class="logo-text">GitHub Pages Deploy</span>
+  </div>
+  <p>Deploy file HTML ke GitHub Pages — gratis, tanpa credits!</p>
+</header>
+<div class="card">
+  <div class="field">
+    <label>GitHub Token</label>
+    <div class="token-wrap">
+      <input type="password" id="token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+      <button class="toggle-eye" onclick="toggleToken()">👁</button>
+    </div>
+    <span class="hint">Buat di <a href="https://github.com/settings/tokens/new" target="_blank">GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)</a> — centang permission: <strong>repo</strong></span>
+  </div>
+  <div class="field">
+    <label>Nama Repository</label>
+    <input type="text" id="repoName" placeholder="nama-repo-kamu" oninput="sanitizeName(this)">
+    <span class="hint">Nama repo baru yang akan dibuat otomatis.</span>
+  </div>
+  <div class="info-box">
+    🌐 Setelah deploy, site kamu live di:<br>
+    <span>https://username.github.io/nama-repo</span><br>
+    Aktif dalam <span>1–3 menit</span> setelah deploy.
+  </div>
+  <hr>
+  <div class="field">
+    <label>File HTML</label>
+    <div id="uploadArea" class="upload-area">
+      <input type="file" id="htmlFile" accept=".html,.htm" onchange="onFileSelected(this)">
+      <div class="upload-icon">📄</div>
+      <div class="upload-label">Klik atau seret file HTML ke sini</div>
+      <div class="upload-hint">File akan di-deploy sebagai index.html</div>
+    </div>
+    <div id="fileInfo" style="display:none" class="file-selected">
+      <span>📄</span>
+      <span class="fname" id="fileName"></span>
+      <button class="file-clear" onclick="clearFile()">✕</button>
+    </div>
+  </div>
+  <div id="statusLoading" class="status loading" style="display:none">
+    <div class="spinner"></div>
+    <span id="loadingMsg">Memproses...</span>
+  </div>
+  <div id="statusSuccess" class="status success" style="display:none">
+    <strong>✅ Deploy berhasil!</strong>
+    <div class="url-result">🌐 <a id="deployUrl" href="#" target="_blank"></a></div>
+    <div style="margin-top:8px;font-size:12px;color:#56d364;">Tunggu 1–3 menit agar site aktif, lalu buka URL-nya.</div>
+  </div>
+  <div id="statusError" class="status error" style="display:none">
+    <strong>❌ Deploy gagal</strong>
+    <div id="errorMsg" style="margin-top:6px;font-size:12px;opacity:0.85;"></div>
+  </div>
+  <button class="btn-deploy" id="deployBtn" onclick="deploy()">🚀 Deploy Sekarang</button>
+</div>
+<script>
+  let selectedFile = null;
+  function toggleToken() { const i = document.getElementById('token'); i.type = i.type==='password'?'text':'password'; }
+  function sanitizeName(el) { el.value = el.value.toLowerCase().replace(/[^a-z0-9-]/g,'-').replace(/--+/g,'-'); }
+  function onFileSelected(input) {
+    if (!input.files[0]) return;
+    selectedFile = input.files[0];
+    document.getElementById('uploadArea').style.display = 'none';
+    document.getElementById('fileInfo').style.display = 'flex';
+    document.getElementById('fileName').textContent = selectedFile.name;
+  }
+  function clearFile() {
+    selectedFile = null; document.getElementById('htmlFile').value = '';
+    document.getElementById('uploadArea').style.display = 'block';
+    document.getElementById('fileInfo').style.display = 'none';
+  }
+  const area = document.getElementById('uploadArea');
+  area.addEventListener('dragover', e=>{e.preventDefault();area.classList.add('dragover');});
+  area.addEventListener('dragleave', ()=>area.classList.remove('dragover'));
+  area.addEventListener('drop', e=>{
+    e.preventDefault(); area.classList.remove('dragover');
+    const f=e.dataTransfer.files[0];
+    if(f){selectedFile=f;document.getElementById('uploadArea').style.display='none';document.getElementById('fileInfo').style.display='flex';document.getElementById('fileName').textContent=f.name;}
+  });
+  function showStatus(type) {
+    document.getElementById('statusLoading').style.display = type==='loading'?'flex':'none';
+    document.getElementById('statusSuccess').style.display = type==='success'?'block':'none';
+    document.getElementById('statusError').style.display = type==='error'?'block':'none';
+  }
+  function setMsg(msg) { document.getElementById('loadingMsg').textContent = msg; }
+  async function gh(path, method, body, token) {
+    const res = await fetch('https://api.github.com'+path, {
+      method, headers: {'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'},
+      body: body ? JSON.stringify(body) : undefined
+    });
+    return { ok: res.ok, status: res.status, data: await res.json() };
+  }
+  async function deploy() {
+    const token = document.getElementById('token').value.trim();
+    const repoName = document.getElementById('repoName').value.trim();
+    if (!token) return alert('Masukkan GitHub Token dulu!');
+    if (!repoName) return alert('Masukkan nama repository dulu!');
+    if (!selectedFile) return alert('Pilih file HTML dulu!');
+    const btn = document.getElementById('deployBtn');
+    btn.disabled = true; showStatus('loading');
+    try {
+      const html = await selectedFile.text();
+      const b64 = btoa(unescape(encodeURIComponent(html)));
+      setMsg('Mengecek akun GitHub...');
+      const {ok:uOk,data:uData} = await gh('/user','GET',null,token);
+      if (!uOk) throw new Error('Token tidak valid: '+(uData.message||''));
+      const username = uData.login;
+      setMsg('Membuat repository...');
+      const {ok:rOk,status:rStatus,data:rData} = await gh('/user/repos','POST',{name:repoName,private:false,auto_init:false,description:'Deployed via GitHub Pages Deploy'},token);
+      if (!rOk && rStatus!==422) throw new Error('Gagal buat repo: '+(rData.message||''));
+      setMsg('Upload file HTML...');
+      const {ok:fOk,data:fData} = await gh('/repos/'+username+'/'+repoName+'/contents/index.html','PUT',{message:'Deploy via web app',content:b64},token);
+      if (!fOk) throw new Error('Gagal upload: '+(fData.message||''));
+      setMsg('Mengaktifkan GitHub Pages...');
+      await gh('/repos/'+username+'/'+repoName+'/pages','POST',{source:{branch:'main',path:'/'}},token);
+      const url = 'https://'+username+'.github.io/'+repoName;
+      document.getElementById('deployUrl').href = url;
+      document.getElementById('deployUrl').textContent = url;
+      showStatus('success');
+    } catch(err) {
+      document.getElementById('errorMsg').textContent = err.message;
+      showStatus('error');
+    }
+    btn.disabled = false;
+  }
+</script>
+</body>
+</html>
