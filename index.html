@@ -717,12 +717,15 @@ function updateModalFavIcon(){
 // ---------- Modal ----------
 let modalPromptText = "";
 let modalPromptId = null;
-window.openModal = function(id, imgUrl, promptText, title){
-  modalPromptId = id;
-  modalPromptText = promptText;
-  document.getElementById("modalImg").src = imgUrl;
-  document.getElementById("modalTitle").textContent = title || "Hasil Prompt AI";
-  document.getElementById("modalPrompt").textContent = promptText;
+window.openModal = function(id){
+  const p = promptsCache.find(item => item.id === id);
+  if(!p) return;
+  const title = p.title || "Hasil Prompt AI";
+  modalPromptId = p.id;
+  modalPromptText = p.prompt || "";
+  document.getElementById("modalImg").src = p.imageUrl || "";
+  document.getElementById("modalTitle").textContent = title;
+  document.getElementById("modalPrompt").textContent = modalPromptText;
   document.getElementById("modalPrompt").classList.remove("show");
   const genBtn = document.getElementById("modalGenerateBtn");
   const genBar = document.getElementById("modalGenerateLoadingBar");
@@ -846,7 +849,7 @@ function renderHome(){
           const views = pseudoViews(p.id);
           const title = p.title || "Hasil Prompt AI";
           return `
-          <div class="card" onclick='openModal(${JSON.stringify(p.id)}, ${JSON.stringify(p.imageUrl)}, ${JSON.stringify(p.prompt)}, ${JSON.stringify(title)})'>
+          <div class="card" onclick="openModal('${p.id}')">
             <span class="badge-pop"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h7l-1 8 11-14h-7l1-6z"/></svg>Populer</span>
             <button class="fav-btn ${isFav?'active':''}" onclick="toggleFav('${p.id}', event)">
               <svg viewBox="0 0 24 24" fill="${isFav?'currentColor':'none'}" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
