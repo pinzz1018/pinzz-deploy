@@ -1,187 +1,835 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Deploy ke GitHub Pages</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vexora Kraftly — AI Prompt Gallery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0d1117; --surface: #161b22; --surface2: #21262d; --border: #30363d;
-    --accent: #58a6ff; --accent2: #79c0ff; --text: #e6edf3; --muted: #8b949e;
-    --success: #3fb950; --error: #f85149; --radius: 12px;
+  :root{
+    --bg:#0E0E12;
+    --card:#17171D;
+    --card-hover:#1D1D26;
+    --border:#26262F;
+    --text:#F4F2F7;
+    --muted:#8B8896;
+    --violet:#8B5CF6;
+    --pink:#EC4899;
+    --grad: linear-gradient(135deg, var(--violet), var(--pink));
   }
-  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 40px 16px 60px; }
-  header { text-align: center; margin-bottom: 40px; }
-  .logo { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-  .logo-icon { width: 40px; height: 40px; background: linear-gradient(135deg, #238636, #2ea043); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; }
-  .logo-text { font-size: 22px; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  header p { color: var(--muted); font-size: 14px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 22px; }
-  .field { display: flex; flex-direction: column; gap: 8px; }
-  label { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-  input[type="text"], input[type="password"] { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 12px 14px; outline: none; transition: border-color 0.2s; width: 100%; }
-  input[type="text"]:focus, input[type="password"]:focus { border-color: var(--accent); }
-  .token-wrap { position: relative; }
-  .token-wrap input { padding-right: 44px; }
-  .toggle-eye { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 4px; }
-  .upload-area { border: 2px dashed var(--border); border-radius: 10px; padding: 32px 20px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; }
-  .upload-area:hover, .upload-area.dragover { border-color: var(--accent); background: rgba(88,166,255,0.05); }
-  .upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-  .upload-icon { font-size: 32px; margin-bottom: 10px; }
-  .upload-label { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
-  .upload-hint { font-size: 12px; color: var(--muted); }
-  .file-selected { display: flex; align-items: center; gap: 10px; background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3); border-radius: 8px; padding: 12px 14px; font-size: 13px; }
-  .file-selected .fname { font-family: 'JetBrains Mono', monospace; color: var(--accent2); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .file-clear { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 0; line-height: 1; }
-  .btn-deploy { background: #238636; border: 1px solid #2ea043; border-radius: 10px; color: #fff; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700; padding: 15px; cursor: pointer; width: 100%; transition: background 0.2s, transform 0.1s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-  .btn-deploy:hover:not(:disabled) { background: #2ea043; }
-  .btn-deploy:active:not(:disabled) { transform: scale(0.98); }
-  .btn-deploy:disabled { opacity: 0.5; cursor: not-allowed; }
-  .status { border-radius: 10px; padding: 16px; font-size: 13px; display: none; }
-  .status.loading { display: flex; align-items: center; gap: 12px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); }
-  .status.success { display: block; background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3); color: var(--success); }
-  .status.error { display: block; background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); color: var(--error); }
-  .status.success .url-result { margin-top: 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
-  .status.success a { color: var(--accent2); word-break: break-all; }
-  .spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .hint { font-size: 12px; color: var(--muted); line-height: 1.6; }
-  .hint a { color: var(--accent2); text-decoration: none; }
-  .hint a:hover { text-decoration: underline; }
-  hr { border: none; border-top: 1px solid var(--border); }
-  .info-box { font-size: 12px; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; line-height: 1.7; }
-  .info-box span { color: var(--accent2); font-weight: 600; }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  html{
+    overflow-x:hidden;
+    width:100%;
+  }
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    overflow-x:hidden;
+    width:100%;
+    max-width:100vw;
+  }
+  img{max-width:100%;height:auto;}
+  h1,h2,h3,.display{
+    font-family:'Space Grotesk',sans-serif;
+  }
+  a{color:inherit;text-decoration:none;}
+  button{font-family:inherit;cursor:pointer;border:none;}
+
+  /* Header */
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:20px 32px;
+    border-bottom:1px solid var(--border);
+    position:sticky;
+    top:0;
+    background:rgba(14,14,18,0.85);
+    backdrop-filter:blur(10px);
+    z-index:50;
+  }
+  .logo{
+    font-size:20px;
+    font-weight:700;
+    letter-spacing:-0.02em;
+  }
+  .logo span{
+    background:var(--grad);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  .header-actions{display:flex;align-items:center;gap:12px;}
+  .btn{
+    padding:10px 18px;
+    border-radius:10px;
+    font-size:14px;
+    font-weight:600;
+    transition:transform .15s ease, opacity .15s ease;
+  }
+  .btn:hover{transform:translateY(-1px);}
+  .btn:active{transform:translateY(0);}
+  .btn-primary{
+    background:var(--grad);
+    color:#fff;
+  }
+  .btn-ghost{
+    background:var(--card);
+    color:var(--text);
+    border:1px solid var(--border);
+  }
+  .btn-ghost:hover{background:var(--card-hover);}
+  .user-pill{
+    display:flex;align-items:center;gap:8px;
+    padding:6px 14px 6px 6px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:999px;
+    font-size:13px;
+    color:var(--muted);
+  }
+  .user-pill img{width:26px;height:26px;border-radius:50%;}
+
+  /* Hero */
+  .hero{
+    padding:64px 32px 40px;
+    text-align:center;
+    max-width:720px;
+    margin:0 auto;
+  }
+  .hero .eyebrow{
+    font-size:13px;
+    color:var(--pink);
+    font-weight:600;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    margin-bottom:14px;
+  }
+  .hero h1{
+    font-size:42px;
+    line-height:1.15;
+    font-weight:700;
+    letter-spacing:-0.02em;
+    margin:0 0 14px;
+  }
+  .hero p{
+    color:var(--muted);
+    font-size:16px;
+    line-height:1.6;
+    margin:0;
+  }
+
+  /* Gallery */
+  .gallery-wrap{max-width:1240px;margin:0 auto;padding:8px 32px 80px;}
+  .gallery{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(240px,1fr));
+    gap:20px;
+  }
+  .card{
+    position:relative;
+    border-radius:16px;
+    overflow:hidden;
+    background:var(--card);
+    border:1px solid var(--border);
+    aspect-ratio:1/1;
+    cursor:pointer;
+    transition:border-color .2s ease, transform .2s ease;
+  }
+  .card:hover{
+    transform:translateY(-3px);
+    border-color:transparent;
+  }
+  .card::before{
+    content:'';
+    position:absolute;inset:0;
+    border-radius:16px;
+    padding:1.5px;
+    background:var(--grad);
+    opacity:0;
+    transition:opacity .2s ease;
+    -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite:xor;
+    mask-composite:exclude;
+    pointer-events:none;
+  }
+  .card:hover::before{opacity:1;}
+  .card img{
+    width:100%;height:100%;object-fit:cover;display:block;
+  }
+  .card .overlay{
+    position:absolute;inset:0;
+    background:linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.85) 100%);
+    display:flex;
+    align-items:flex-end;
+    padding:14px;
+    opacity:0;
+    transition:opacity .2s ease;
+  }
+  .card:hover .overlay{opacity:1;}
+  .card .copy-btn{
+    background:rgba(255,255,255,0.12);
+    backdrop-filter:blur(6px);
+    color:#fff;
+    padding:8px 14px;
+    border-radius:8px;
+    font-size:13px;
+    font-weight:600;
+    border:1px solid rgba(255,255,255,0.2);
+  }
+  .card .copy-btn:hover{background:rgba(255,255,255,0.22);}
+
+  .empty-state{
+    text-align:center;
+    padding:80px 20px;
+    color:var(--muted);
+  }
+  .empty-state h3{color:var(--text);margin-bottom:8px;}
+
+  /* Modal */
+  .modal-backdrop{
+    position:fixed;inset:0;
+    background:rgba(8,8,10,0.8);
+    backdrop-filter:blur(4px);
+    display:none;
+    align-items:center;justify-content:center;
+    z-index:200;
+    padding:20px;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:20px;
+    max-width:480px;
+    width:100%;
+    max-height:90vh;
+    overflow-y:auto;
+    position:relative;
+  }
+  .modal-close{
+    position:absolute;
+    top:16px;left:16px;
+    width:36px;height:36px;
+    border-radius:50%;
+    background:rgba(0,0,0,0.5);
+    color:#fff;
+    font-size:18px;
+    display:flex;align-items:center;justify-content:center;
+    z-index:10;
+  }
+  .modal-close:hover{background:rgba(0,0,0,0.7);}
+  .modal img{
+    width:100%;
+    display:block;
+    border-radius:20px 20px 0 0;
+  }
+  .modal-body{padding:20px;}
+  .modal-body .prompt-text{
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:14px;
+    font-size:14px;
+    line-height:1.6;
+    color:var(--text);
+    margin-bottom:16px;
+    white-space:pre-wrap;
+  }
+  .modal-body .btn{width:100%;text-align:center;}
+
+  /* Toast */
+  .toast{
+    position:fixed;
+    bottom:28px;left:50%;
+    transform:translate(-50%,20px);
+    background:var(--text);
+    color:var(--bg);
+    padding:12px 22px;
+    border-radius:10px;
+    font-size:14px;
+    font-weight:600;
+    opacity:0;
+    transition:opacity .25s ease, transform .25s ease;
+    z-index:300;
+    pointer-events:none;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0);}
+
+  /* Admin */
+  .admin-wrap{
+    max-width:640px;
+    margin:0 auto;
+    padding:48px 24px 100px;
+  }
+  .admin-wrap h2{font-size:26px;margin-bottom:6px;}
+  .admin-wrap .sub{color:var(--muted);font-size:14px;margin-bottom:32px;}
+  .field{margin-bottom:24px;}
+  .field label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    color:var(--muted);
+    margin-bottom:8px;
+  }
+  .field input[type=password],
+  .field input[type=text],
+  .field textarea{
+    width:100%;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:12px 14px;
+    color:var(--text);
+    font-size:14px;
+    font-family:inherit;
+  }
+  .field textarea{resize:vertical;min-height:110px;line-height:1.5;}
+  .field input:focus,.field textarea:focus{outline:none;border-color:var(--violet);}
+  .field .hint{font-size:12px;color:var(--muted);margin-top:6px;}
+
+  .upload-zone{
+    border:1.5px dashed var(--border);
+    border-radius:14px;
+    padding:28px;
+    text-align:center;
+    background:var(--card);
+    cursor:pointer;
+    transition:border-color .15s ease;
+  }
+  .upload-zone:hover{border-color:var(--violet);}
+  .upload-zone .icon{font-size:28px;margin-bottom:8px;}
+  .upload-zone p{margin:0;color:var(--muted);font-size:14px;}
+  .preview-img{
+    width:100%;
+    max-height:320px;
+    object-fit:contain;
+    border-radius:12px;
+    margin-top:14px;
+    background:#000;
+  }
+
+  .btn-block{width:100%;text-align:center;margin-top:10px;}
+  .btn-block:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+
+  .divider{height:1px;background:var(--border);margin:28px 0;}
+
+  .access-denied{
+    text-align:center;
+    padding:100px 20px;
+    color:var(--muted);
+  }
+
+  .spinner{
+    display:inline-block;
+    width:16px;height:16px;
+    border:2px solid rgba(255,255,255,0.3);
+    border-top-color:#fff;
+    border-radius:50%;
+    animation:spin .7s linear infinite;
+    vertical-align:middle;
+    margin-right:8px;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .status-msg{font-size:13px;margin-top:10px;color:var(--muted);}
+  .status-msg.error{color:#F87171;}
+  .status-msg.success{color:#34D399;}
+
+  footer{
+    text-align:center;
+    padding:28px;
+    color:var(--muted);
+    font-size:13px;
+    border-top:1px solid var(--border);
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important;animation:none !important;}
+  }
+
+  @media (max-width:560px){
+    header{padding:16px 18px;}
+    .hero{padding:44px 18px 28px;}
+    .hero h1{font-size:32px;}
+    .gallery-wrap{padding:8px 18px 60px;}
+  }
 </style>
 </head>
 <body>
+
 <header>
-  <div class="logo">
-    <div class="logo-icon">🐙</div>
-    <span class="logo-text">GitHub Pages Deploy</span>
-  </div>
-  <p>Deploy file HTML ke GitHub Pages — gratis, tanpa credits!</p>
+  <a href="#/" class="logo" onclick="navigate('home')">Vexora<span>Kraftly</span></a>
+  <div class="header-actions" id="headerActions"></div>
 </header>
-<div class="card">
-  <div class="field">
-    <label>GitHub Token</label>
-    <div class="token-wrap">
-      <input type="password" id="token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
-      <button class="toggle-eye" onclick="toggleToken()">👁</button>
-    </div>
-    <span class="hint">Buat di <a href="https://github.com/settings/tokens/new" target="_blank">GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)</a> — centang permission: <strong>repo</strong></span>
-  </div>
-  <div class="field">
-    <label>Nama Repository</label>
-    <input type="text" id="repoName" placeholder="nama-repo-kamu" oninput="sanitizeName(this)">
-    <span class="hint">Nama repo baru yang akan dibuat otomatis.</span>
-  </div>
-  <div class="info-box">
-    🌐 Setelah deploy, site kamu live di:<br>
-    <span>https://username.github.io/nama-repo</span><br>
-    Aktif dalam <span>1–3 menit</span> setelah deploy.
-  </div>
-  <hr>
-  <div class="field">
-    <label>File HTML</label>
-    <div id="uploadArea" class="upload-area">
-      <input type="file" id="htmlFile" accept=".html,.htm" onchange="onFileSelected(this)">
-      <div class="upload-icon">📄</div>
-      <div class="upload-label">Klik atau seret file HTML ke sini</div>
-      <div class="upload-hint">File akan di-deploy sebagai index.html</div>
-    </div>
-    <div id="fileInfo" style="display:none" class="file-selected">
-      <span>📄</span>
-      <span class="fname" id="fileName"></span>
-      <button class="file-clear" onclick="clearFile()">✕</button>
+
+<main id="app"></main>
+
+<footer>Vexora Kraftly — kumpulan prompt AI, siap pakai.</footer>
+
+<!-- Modal detail -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="if(event.target===this) closeModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <img id="modalImg" src="" alt="Preview prompt" />
+    <div class="modal-body">
+      <div class="prompt-text" id="modalPrompt"></div>
+      <button class="btn btn-primary btn-block" onclick="copyModalPrompt()">Salin Prompt</button>
     </div>
   </div>
-  <div id="statusLoading" class="status loading" style="display:none">
-    <div class="spinner"></div>
-    <span id="loadingMsg">Memproses...</span>
-  </div>
-  <div id="statusSuccess" class="status success" style="display:none">
-    <strong>✅ Deploy berhasil!</strong>
-    <div class="url-result">🌐 <a id="deployUrl" href="#" target="_blank"></a></div>
-    <div style="margin-top:8px;font-size:12px;color:#56d364;">Tunggu 1–3 menit agar site aktif, lalu buka URL-nya.</div>
-  </div>
-  <div id="statusError" class="status error" style="display:none">
-    <strong>❌ Deploy gagal</strong>
-    <div id="errorMsg" style="margin-top:6px;font-size:12px;opacity:0.85;"></div>
-  </div>
-  <button class="btn-deploy" id="deployBtn" onclick="deploy()">🚀 Deploy Sekarang</button>
 </div>
-<script>
-  let selectedFile = null;
-  function toggleToken() { const i = document.getElementById('token'); i.type = i.type==='password'?'text':'password'; }
-  function sanitizeName(el) { el.value = el.value.toLowerCase().replace(/[^a-z0-9-]/g,'-').replace(/--+/g,'-'); }
-  function onFileSelected(input) {
-    if (!input.files[0]) return;
-    selectedFile = input.files[0];
-    document.getElementById('uploadArea').style.display = 'none';
-    document.getElementById('fileInfo').style.display = 'flex';
-    document.getElementById('fileName').textContent = selectedFile.name;
+
+<div class="toast" id="toast">Prompt disalin</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCVNgaVsRulynYIgpV68HatD5g7E9tbyf8",
+  authDomain: "vexora-kraftly.firebaseapp.com",
+  projectId: "vexora-kraftly",
+  messagingSenderId: "1055810233906",
+  appId: "1:1055810233906:web:2471da2fe59a4cf9427e2b"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+const ADMIN_UID = "eXLklj6fs7a5HJAZbNCeU7UHxpK2";
+
+let currentUser = null;
+let currentRoute = "home";
+let promptsCache = [];
+let groqApiKey = localStorage.getItem("vexKraf_groqKey") || "";
+let generatedPrompt = "";
+let uploadedFile = null;
+let uploadedPreviewUrl = "";
+
+// ---------- Router sederhana ----------
+window.navigate = function(route){
+  currentRoute = route;
+  render();
+};
+
+// ---------- Auth ----------
+window.signIn = async function(){
+  try{
+    await signInWithPopup(auth, provider);
+  }catch(e){
+    console.error(e);
+    alert("Gagal masuk: " + e.message);
   }
-  function clearFile() {
-    selectedFile = null; document.getElementById('htmlFile').value = '';
-    document.getElementById('uploadArea').style.display = 'block';
-    document.getElementById('fileInfo').style.display = 'none';
+};
+
+window.signOutUser = async function(){
+  await signOut(auth);
+  navigate("home");
+};
+
+onAuthStateChanged(auth, (user) => {
+  const wasAlreadyThisUser = currentUser && user && currentUser.uid === user.uid;
+  currentUser = user;
+  // Jangan render ulang paksa kalau user sama & sedang di admin panel dengan gambar
+  // yang sudah dipilih — supaya state upload/preview tidak hilang saat token refresh.
+  if(wasAlreadyThisUser && currentRoute === "admin" && uploadedFile){
+    return;
   }
-  const area = document.getElementById('uploadArea');
-  area.addEventListener('dragover', e=>{e.preventDefault();area.classList.add('dragover');});
-  area.addEventListener('dragleave', ()=>area.classList.remove('dragover'));
-  area.addEventListener('drop', e=>{
-    e.preventDefault(); area.classList.remove('dragover');
-    const f=e.dataTransfer.files[0];
-    if(f){selectedFile=f;document.getElementById('uploadArea').style.display='none';document.getElementById('fileInfo').style.display='flex';document.getElementById('fileName').textContent=f.name;}
-  });
-  function showStatus(type) {
-    document.getElementById('statusLoading').style.display = type==='loading'?'flex':'none';
-    document.getElementById('statusSuccess').style.display = type==='success'?'block':'none';
-    document.getElementById('statusError').style.display = type==='error'?'block':'none';
+  render();
+});
+
+// ---------- Firestore: load prompts ----------
+async function loadPrompts(){
+  try{
+    const q = query(collection(db, "prompts"), orderBy("createdAt", "desc"));
+    const snap = await getDocs(q);
+    promptsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  }catch(e){
+    console.error("Gagal memuat prompt:", e);
+    promptsCache = [];
   }
-  function setMsg(msg) { document.getElementById('loadingMsg').textContent = msg; }
-  async function gh(path, method, body, token) {
-    const res = await fetch('https://api.github.com'+path, {
-      method, headers: {'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'},
-      body: body ? JSON.stringify(body) : undefined
+}
+
+// ---------- Toast ----------
+let toastTimer = null;
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+// ---------- Modal ----------
+let modalPromptText = "";
+window.openModal = function(imgUrl, promptText){
+  modalPromptText = promptText;
+  document.getElementById("modalImg").src = imgUrl;
+  document.getElementById("modalPrompt").textContent = promptText;
+  document.getElementById("modalBackdrop").classList.add("open");
+};
+window.closeModal = function(){
+  document.getElementById("modalBackdrop").classList.remove("open");
+};
+window.copyModalPrompt = async function(){
+  await copyText(modalPromptText);
+};
+window.copyCard = async function(promptText, ev){
+  ev.stopPropagation();
+  await copyText(promptText);
+};
+async function copyText(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    showToast("Prompt disalin ✓");
+  }catch(e){
+    showToast("Gagal menyalin");
+  }
+}
+
+// ---------- Render header ----------
+function renderHeader(){
+  const el = document.getElementById("headerActions");
+  if(currentUser){
+    const isAdmin = currentUser.uid === ADMIN_UID;
+    el.innerHTML = `
+      ${isAdmin ? `<button class="btn btn-ghost" onclick="navigate('admin')">Admin Panel</button>` : ""}
+      <div class="user-pill">
+        <img src="${currentUser.photoURL || ''}" alt=""/>
+        <span>${escapeHtml(currentUser.displayName || currentUser.email || '')}</span>
+      </div>
+      <button class="btn btn-ghost" onclick="signOutUser()">Keluar</button>
+    `;
+  }else{
+    el.innerHTML = `<button class="btn btn-primary" onclick="signIn()">Masuk dengan Google</button>`;
+  }
+}
+
+function escapeHtml(str){
+  const d = document.createElement("div");
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// ---------- Render halaman utama ----------
+function renderHome(){
+  const galleryHtml = promptsCache.length === 0
+    ? `<div class="empty-state"><h3>Belum ada prompt</h3><p>Koleksi prompt akan tampil di sini.</p></div>`
+    : `<div class="gallery">
+        ${promptsCache.map(p => `
+          <div class="card" onclick='openModal(${JSON.stringify(p.imageUrl)}, ${JSON.stringify(p.prompt)})'>
+            <img src="${p.imageUrl}" alt="Prompt image" loading="lazy" />
+            <div class="overlay">
+              <button class="copy-btn" onclick='copyCard(${JSON.stringify(p.prompt)}, event)'>Salin Prompt</button>
+            </div>
+          </div>
+        `).join("")}
+      </div>`;
+
+  return `
+    <section class="hero">
+      <div class="eyebrow">Galeri Prompt AI</div>
+      <h1>Temukan prompt, langsung pakai.</h1>
+      <p>Jelajahi kumpulan prompt siap salin untuk kebutuhan AI image generation kamu.</p>
+    </section>
+    <section class="gallery-wrap">${galleryHtml}</section>
+  `;
+}
+
+// ---------- Render admin panel ----------
+function renderAdmin(){
+  if(!currentUser){
+    return `<div class="access-denied"><h3>Perlu masuk</h3><p>Masuk dengan Google untuk mengakses halaman ini.</p></div>`;
+  }
+  if(currentUser.uid !== ADMIN_UID){
+    return `<div class="access-denied"><h3>Akses ditolak</h3><p>Halaman ini khusus admin.</p></div>`;
+  }
+
+  return `
+    <div class="admin-wrap">
+      <h2>Admin Panel</h2>
+      <div class="sub">Kelola prompt yang tampil di Vexora Kraftly.</div>
+
+      <div class="field">
+        <label for="groqKey">API Key Groq</label>
+        <input type="password" id="groqKey" placeholder="gsk_..." value="${escapeHtml(groqApiKey)}" />
+        <div class="hint">Key disimpan di browser ini (localStorage), tidak hilang saat refresh.</div>
+      </div>
+
+      <div class="field">
+        <label>Unggah Gambar</label>
+        <div id="uploadZone" class="upload-zone" onclick="document.getElementById('fileInput').click()">
+          <div class="icon">🖼️</div>
+          <p>Klik untuk pilih gambar</p>
+        </div>
+        <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFileSelect(event)" />
+        <img id="previewImg" class="preview-img" style="display:${uploadedFile ? 'block' : 'none'}" src="${uploadedPreviewUrl || ''}" />
+      </div>
+
+      <button class="btn btn-primary btn-block" id="generateBtn" onclick="generatePrompt()" ${(uploadedFile && groqApiKey && groqApiKey.trim()) ? "" : "disabled"}>
+        Generate Prompt
+      </button>
+      <div class="status-msg" id="generateStatus"></div>
+
+      <div class="field" style="margin-top:22px;" id="promptFieldWrap" style="display:none;">
+        <label for="promptEdit">Prompt (bisa diedit)</label>
+        <textarea id="promptEdit" oninput="generatedPrompt = this.value"></textarea>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="uploadPageBtn" onclick="uploadToPage()" style="display:none;">
+        Upload ke Halaman Vexora Kraftly
+      </button>
+      <div class="status-msg" id="uploadStatus"></div>
+    </div>
+  `;
+}
+
+// ---------- File select ----------
+window.handleFileSelect = function(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  uploadedFile = file;
+  uploadedPreviewUrl = URL.createObjectURL(file);
+  const img = document.getElementById("previewImg");
+  if(img){
+    img.src = uploadedPreviewUrl;
+    img.style.display = "block";
+  }
+  checkGenerateEnabled();
+};
+
+function checkGenerateEnabled(){
+  const btn = document.getElementById("generateBtn");
+  const keyInput = document.getElementById("groqKey");
+  // sinkronkan groqApiKey dari input, jaga-jaga kalau variabel closure belum ke-update
+  if(keyInput) groqApiKey = keyInput.value;
+  const hasKey = !!(groqApiKey && groqApiKey.trim().length > 0);
+  const hasFile = !!uploadedFile;
+  if(btn) btn.disabled = !(hasFile && hasKey);
+}
+
+// pantau perubahan key supaya tombol generate aktif/nonaktif real-time
+document.addEventListener("input", (e) => {
+  if(e.target && e.target.id === "groqKey"){
+    groqApiKey = e.target.value;
+    localStorage.setItem("vexKraf_groqKey", groqApiKey);
+    checkGenerateEnabled();
+  }
+});
+
+// ---------- Generate prompt via Groq Vision ----------
+window.generatePrompt = async function(){
+  const statusEl = document.getElementById("generateStatus");
+  const btn = document.getElementById("generateBtn");
+  if(!uploadedFile || !groqApiKey.trim()){
+    statusEl.textContent = "Isi API key dan pilih gambar terlebih dahulu.";
+    statusEl.className = "status-msg error";
+    return;
+  }
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span>Membuat prompt...`;
+  statusEl.textContent = "";
+  statusEl.className = "status-msg";
+
+  try{
+    const base64 = await fileToBase64(uploadedFile);
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${groqApiKey.trim()}`
+      },
+      body: JSON.stringify({
+        model: "meta-llama/llama-4-scout-17b-16e-instruct",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `You are an expert prompt engineer for AI image generators (ChatGPT/DALL-E, Gemini, Midjourney). Analyze this image with extreme precision and write ONE single flowing descriptive paragraph in English that would let an AI recreate this image as identically as possible.
+
+Cover ALL of the following in your description, woven naturally into the paragraph (do not use headers or bullet points, just flowing prose):
+- Subject: exact number of people/objects, gender, approximate age, ethnicity/skin tone, body type, exact pose and body angle, head tilt, hand/arm position
+- Face & expression: precise facial expression, eye state (open/closed/winking), gaze direction, mouth expression, eyebrow position
+- Hair: exact color, length, texture, style, how it falls, any flyaway strands, accessories in hair
+- Clothing: every visible garment, exact color, fabric texture, fit, pattern, any jewelry or accessories worn, how clothing drapes
+- Skin & makeup: visible skin tone, texture, any makeup details, blemishes or distinguishing marks
+- Lighting: direction, color temperature (warm/cool), intensity, shadows, highlights, any light sources visible (lamp, window, ring light)
+- Background: every visible background element, wall color/texture, furniture, decorations, depth of field/blur level
+- Composition & camera: camera angle (eye-level, low, high, selfie angle), framing (close-up, medium, full body), aspect ratio feel, focal length impression
+- Color palette: dominant and accent colors throughout the whole image
+- Photo style/quality: whether it looks like a phone selfie, professional photo, candid shot, its grain/sharpness level, color grading mood
+
+Write it as ONE cohesive paragraph, extremely detailed and specific (not generic), as if instructing someone who has never seen the image to recreate it pixel-perfect. Do not add any commentary, explanation, or notes outside the paragraph. Start the paragraph with exactly: "Make this photo become"`
+              },
+              {
+                type: "image_url",
+                image_url: { url: `data:${uploadedFile.type};base64,${base64}` }
+              }
+            ]
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 1200
+      })
     });
-    return { ok: res.ok, status: res.status, data: await res.json() };
-  }
-  async function deploy() {
-    const token = document.getElementById('token').value.trim();
-    const repoName = document.getElementById('repoName').value.trim();
-    if (!token) return alert('Masukkan GitHub Token dulu!');
-    if (!repoName) return alert('Masukkan nama repository dulu!');
-    if (!selectedFile) return alert('Pilih file HTML dulu!');
-    const btn = document.getElementById('deployBtn');
-    btn.disabled = true; showStatus('loading');
-    try {
-      const html = await selectedFile.text();
-      const b64 = btoa(unescape(encodeURIComponent(html)));
-      setMsg('Mengecek akun GitHub...');
-      const {ok:uOk,data:uData} = await gh('/user','GET',null,token);
-      if (!uOk) throw new Error('Token tidak valid: '+(uData.message||''));
-      const username = uData.login;
-      setMsg('Membuat repository...');
-      const {ok:rOk,status:rStatus,data:rData} = await gh('/user/repos','POST',{name:repoName,private:false,auto_init:false,description:'Deployed via GitHub Pages Deploy'},token);
-      if (!rOk && rStatus!==422) throw new Error('Gagal buat repo: '+(rData.message||''));
-      setMsg('Upload file HTML...');
-      const {ok:fOk,data:fData} = await gh('/repos/'+username+'/'+repoName+'/contents/index.html','PUT',{message:'Deploy via web app',content:b64},token);
-      if (!fOk) throw new Error('Gagal upload: '+(fData.message||''));
-      setMsg('Mengaktifkan GitHub Pages...');
-      await gh('/repos/'+username+'/'+repoName+'/pages','POST',{source:{branch:'main',path:'/'}},token);
-      const url = 'https://'+username+'.github.io/'+repoName;
-      document.getElementById('deployUrl').href = url;
-      document.getElementById('deployUrl').textContent = url;
-      showStatus('success');
-    } catch(err) {
-      document.getElementById('errorMsg').textContent = err.message;
-      showStatus('error');
+
+    if(!res.ok){
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData?.error?.message || `Groq API error (${res.status})`);
     }
+
+    const data = await res.json();
+    let text = data.choices?.[0]?.message?.content?.trim() || "";
+    if(!text.toLowerCase().startsWith("make this photo become")){
+      text = "Make this photo become " + text;
+    }
+    generatedPrompt = text;
+
+    document.getElementById("promptFieldWrap").style.display = "block";
+    document.getElementById("promptEdit").value = text;
+    document.getElementById("uploadPageBtn").style.display = "block";
+
+    statusEl.textContent = "Prompt berhasil dibuat. Kamu bisa mengeditnya sebelum upload.";
+    statusEl.className = "status-msg success";
+  }catch(e){
+    console.error(e);
+    statusEl.textContent = "Gagal membuat prompt: " + e.message;
+    statusEl.className = "status-msg error";
+  }finally{
     btn.disabled = false;
+    btn.innerHTML = "Generate Prompt";
   }
+};
+
+function fileToBase64(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Resize + kompres gambar jadi data URL base64 kecil, aman buat disimpan
+// langsung di field dokumen Firestore (limit 1MB per dokumen).
+function fileToCompressedBase64(file, maxDim = 1280, quality = 0.75){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = () => { img.src = reader.result; };
+    reader.onerror = reject;
+    img.onload = () => {
+      let { width, height } = img;
+      if(width > maxDim || height > maxDim){
+        const scale = maxDim / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+
+      let dataUrl = canvas.toDataURL("image/jpeg", quality);
+
+      // Kalau masih kegedean (>700KB), turunin quality lagi bertahap.
+      let q = quality;
+      while(dataUrl.length > 700_000 && q > 0.3){
+        q -= 0.1;
+        dataUrl = canvas.toDataURL("image/jpeg", q);
+      }
+
+      resolve(dataUrl);
+    };
+    img.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---------- Upload ke halaman ----------
+window.uploadToPage = async function(){
+  const statusEl = document.getElementById("uploadStatus");
+  const btn = document.getElementById("uploadPageBtn");
+  const finalPrompt = document.getElementById("promptEdit").value.trim();
+
+  if(!uploadedFile || !finalPrompt){
+    statusEl.textContent = "Gambar dan prompt tidak boleh kosong.";
+    statusEl.className = "status-msg error";
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span>Mengunggah...`;
+  statusEl.textContent = "";
+  statusEl.className = "status-msg";
+
+  try{
+    const imageUrl = await fileToCompressedBase64(uploadedFile);
+
+    await addDoc(collection(db, "prompts"), {
+      imageUrl,
+      prompt: finalPrompt,
+      createdAt: serverTimestamp(),
+      createdBy: currentUser.uid
+    });
+
+    statusEl.textContent = "Berhasil diunggah ke halaman Vexora Kraftly ✓";
+    statusEl.className = "status-msg success";
+
+    // reset form
+    uploadedFile = null;
+    generatedPrompt = "";
+    document.getElementById("fileInput").value = "";
+    document.getElementById("previewImg").style.display = "none";
+    document.getElementById("promptFieldWrap").style.display = "none";
+    document.getElementById("uploadPageBtn").style.display = "none";
+    document.getElementById("generateBtn").disabled = true;
+
+    await loadPrompts();
+  }catch(e){
+    console.error(e);
+    statusEl.textContent = "Gagal mengunggah: " + e.message;
+    statusEl.className = "status-msg error";
+  }finally{
+    btn.disabled = false;
+    btn.innerHTML = "Upload ke Halaman Vexora Kraftly";
+  }
+};
+
+// ---------- Render utama ----------
+async function render(){
+  renderHeader();
+  const appEl = document.getElementById("app");
+
+  if(currentRoute === "admin"){
+    appEl.innerHTML = renderAdmin();
+    checkGenerateEnabled();
+  }else{
+    if(promptsCache.length === 0){
+      appEl.innerHTML = `<div class="empty-state"><h3>Memuat prompt...</h3></div>`;
+      await loadPrompts();
+    }
+    appEl.innerHTML = renderHome();
+  }
+}
+
+render();
 </script>
 </body>
 </html>
