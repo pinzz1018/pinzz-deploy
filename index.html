@@ -664,7 +664,8 @@ import {
   getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp
+  getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp,
+  doc, updateDoc, increment
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -768,6 +769,29 @@ function updateModalFavIcon(){
 // ---------- Modal ----------
 let modalPromptText = "";
 let modalPromptId = null;
+let viewedThisSession = new Set(JSON.parse(sessionStorage.getItem("vexKraf_viewed") || "[]"));
+
+async function registerView(p){
+  // Hanya menghitung 1 view asli per foto per sesi browser (bukan setiap kali modal dibuka/ditutup).
+  if(viewedThisSession.has(p.id)) return;
+  viewedThisSession.add(p.id);
+  sessionStorage.setItem("vexKraf_viewed", JSON.stringify([...viewedThisSession]));
+  const newViews = getRealViews(p) + 1;
+  p.views = newViews; // update cache lokal supaya tampilan langsung sinkron
+  updateViewsInDom(p.id, newViews);
+  try{
+    await updateDoc(doc(db, "prompts", p.id), { views: increment(1) });
+  }catch(e){
+    console.error("Gagal mencatat view:", e);
+  }
+}
+
+function updateViewsInDom(id, views){
+  document.querySelectorAll(`.card[data-id="${id}"] .views-count`).forEach(el => {
+    el.textContent = views.toLocaleString('id-ID');
+  });
+}
+
 window.openModal = function(id){
   const p = promptsCache.find(item => item.id === id);
   if(!p) return;
@@ -790,6 +814,7 @@ window.openModal = function(id){
   document.body.style.overflow = "hidden";
   updateModalFavIcon();
   window.scrollTo(0,0);
+  registerView(p);
   // dobel rAF supaya browser sempat commit state awal (opacity:0) sebelum transisi ke animate-in dimulai
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
@@ -875,23 +900,49 @@ const TABS = [
 ];
 window.setTab = function(tabId){
   activeTab = tabId;
-  render();
+  render().then(() => {
+    const activeBtn = document.querySelector(".tab-btn.active");
+    if(activeBtn){
+      activeBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    }
+  });
 };
 
 function getFilteredPrompts(){
   if(activeTab === "favorite"){
     return promptsCache.filter(p => favIds.has(p.id));
   }
-  // Untuk tab lain (all/exclusive/trending/popular) semua prompt yang ada ditampilkan,
-  // karena kategori sumber data belum dipisah per-tab.
+
+  if(activeTab === "exclusive"){
+    // Cuma prompt yang ditandai eksklusif oleh admin
+    return promptsCache.filter(p => p.isExclusive === true);
+  }
+
+  if(activeTab === "popular"){
+    // Urutkan berdasarkan jumlah views asli, terbanyak duluan
+    return [...promptsCache].sort((a, b) => getRealViews(b) - getRealViews(a));
+  }
+
+  if(activeTab === "trending"){
+    // Trending = kombinasi views tinggi & masih baru diupload,
+    // biar prompt lama yang views-nya numpuk tidak selamanya mendominasi.
+    const now = Date.now();
+    const score = (p) => {
+      const ts = p.createdAt?.toMillis ? p.createdAt.toMillis() : now;
+      const ageDays = Math.max((now - ts) / (1000 * 60 * 60 * 24), 0.5);
+      // Semakin baru (ageDays kecil) & semakin banyak views, semakin tinggi skor.
+      return getRealViews(p) / Math.pow(ageDays + 1, 1.3);
+    };
+    return [...promptsCache].sort((a, b) => score(b) - score(a));
+  }
+
+  // Tab "all": semua prompt, terbaru duluan (default urutan dari Firestore sudah orderBy createdAt desc)
   return promptsCache;
 }
 
-function pseudoViews(id){
-  // Angka views konsisten per item, dihasilkan dari id-nya (bukan acak setiap render).
-  let hash = 0;
-  for(let i=0;i<id.length;i++){ hash = (hash * 31 + id.charCodeAt(i)) >>> 0; }
-  return 1000 + (hash % 8000);
+function getRealViews(p){
+  // Menampilkan jumlah tayang asli dari Firestore (field "views"). Jika belum pernah dilihat, mulai dari 0.
+  return typeof p.views === "number" ? p.views : 0;
 }
 
 // ---------- Render halaman utama ----------
@@ -911,17 +962,17 @@ function renderHome(){
     : `<div class="gallery">
         ${filtered.map(p => {
           const isFav = favIds.has(p.id);
-          const views = pseudoViews(p.id);
+          const views = getRealViews(p);
           const title = p.title || "Hasil Prompt AI";
           return `
-          <div class="card" onclick="openModal('${p.id}')">
+          <div class="card" data-id="${p.id}" onclick="openModal('${p.id}')">
             <span class="badge-pop"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h7l-1 8 11-14h-7l1-6z"/></svg>Populer</span>
             <button class="fav-btn ${isFav?'active':''}" onclick="toggleFav('${p.id}', event)">
               <svg viewBox="0 0 24 24" fill="${isFav?'currentColor':'none'}" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
             </button>
             <img src="${p.imageUrl}" alt="Prompt image" loading="lazy" />
             <div class="overlay"></div>
-            <span class="views"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${views.toLocaleString('id-ID')}</span>
+            <span class="views"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><span class="views-count">${views.toLocaleString('id-ID')}</span></span>
           </div>
         `;}).join("")}
       </div>`;
@@ -974,6 +1025,11 @@ function renderAdmin(){
         <label for="promptEdit">Prompt (bisa diedit)</label>
         <textarea id="promptEdit" oninput="generatedPrompt = this.value"></textarea>
       </div>
+
+      <label class="checkbox-field" style="display:flex;align-items:center;gap:8px;margin:14px 0;font-size:14px;cursor:pointer;">
+        <input type="checkbox" id="isExclusiveCheck" style="width:18px;height:18px;accent-color:var(--cyan);" />
+        Tandai sebagai Exclusive
+      </label>
 
       <button class="btn btn-primary btn-block" id="uploadPageBtn" onclick="uploadToPage()" style="display:none;">
         Upload ke Halaman Vexora Kraftly
@@ -1173,12 +1229,15 @@ window.uploadToPage = async function(){
 
   try{
     const imageUrl = await fileToCompressedBase64(uploadedFile);
+    const isExclusive = document.getElementById("isExclusiveCheck")?.checked || false;
 
     await addDoc(collection(db, "prompts"), {
       imageUrl,
       prompt: finalPrompt,
       createdAt: serverTimestamp(),
-      createdBy: currentUser.uid
+      createdBy: currentUser.uid,
+      views: 0,
+      isExclusive
     });
 
     statusEl.textContent = "Berhasil diunggah ke halaman Vexora Kraftly ✓";
@@ -1192,6 +1251,7 @@ window.uploadToPage = async function(){
     document.getElementById("promptFieldWrap").style.display = "none";
     document.getElementById("uploadPageBtn").style.display = "none";
     document.getElementById("generateBtn").disabled = true;
+    if(document.getElementById("isExclusiveCheck")) document.getElementById("isExclusiveCheck").checked = false;
 
     await loadPrompts();
   }catch(e){
