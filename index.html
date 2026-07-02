@@ -269,8 +269,11 @@
     display:none;
     z-index:200;
     overflow-y:auto;
+    opacity:0;
+    transition:opacity .35s ease;
   }
   .modal-backdrop.open{display:block;}
+  .modal-backdrop.open.animate-in{opacity:1;}
   .detail-header{
     display:flex;
     align-items:center;
@@ -281,6 +284,13 @@
     background:rgba(10,10,16,0.9);
     backdrop-filter:blur(10px);
     z-index:5;
+    opacity:0;
+    transform:translateY(-14px);
+    transition:opacity .45s cubic-bezier(.16,1,.3,1), transform .45s cubic-bezier(.16,1,.3,1);
+  }
+  .modal-backdrop.animate-in .detail-header{
+    opacity:1;
+    transform:translateY(0);
   }
   .modal{
     max-width:520px;
@@ -295,6 +305,13 @@
     overflow:hidden;
     border:1.5px solid var(--cyan);
     box-shadow:0 0 0 1px rgba(34,211,238,0.15), 0 0 30px rgba(34,211,238,0.08);
+    opacity:0;
+    transform:translateY(28px) scale(0.96);
+    transition:opacity .55s cubic-bezier(.16,1,.3,1) .08s, transform .55s cubic-bezier(.16,1,.3,1) .08s;
+  }
+  .modal-backdrop.animate-in .modal-frame{
+    opacity:1;
+    transform:translateY(0) scale(1);
   }
   .modal-frame img{
     width:100%;
@@ -302,8 +319,15 @@
   }
   .modal-badges{
     position:absolute;top:14px;left:14px;right:14px;
-    display:flex;align-items:center;justify-content:space-between;
+    display:flex;align-items:center;
     z-index:2;
+    opacity:0;
+    transform:translateY(-8px);
+    transition:opacity .45s cubic-bezier(.16,1,.3,1) .32s, transform .45s cubic-bezier(.16,1,.3,1) .32s;
+  }
+  .modal-backdrop.animate-in .modal-badges{
+    opacity:1;
+    transform:translateY(0);
   }
   .badge-ai{
     display:flex;align-items:center;gap:6px;
@@ -323,6 +347,13 @@
     padding:60px 20px 22px;
     background:linear-gradient(180deg, transparent, rgba(0,0,0,0.9));
     text-align:center;
+    opacity:0;
+    transform:translateY(10px);
+    transition:opacity .45s cubic-bezier(.16,1,.3,1) .26s, transform .45s cubic-bezier(.16,1,.3,1) .26s;
+  }
+  .modal-backdrop.animate-in .modal-title-overlay{
+    opacity:1;
+    transform:translateY(0);
   }
   .modal-title-overlay h2{
     font-size:24px;
@@ -330,7 +361,16 @@
     margin:0;
     line-height:1.3;
   }
-  .modal-body{padding:22px 2px 0;}
+  .modal-body{
+    padding:22px 2px 0;
+    opacity:0;
+    transform:translateY(18px);
+    transition:opacity .5s cubic-bezier(.16,1,.3,1) .36s, transform .5s cubic-bezier(.16,1,.3,1) .36s;
+  }
+  .modal-backdrop.animate-in .modal-body{
+    opacity:1;
+    transform:translateY(0);
+  }
   .modal-body .prompt-text{
     background:var(--card);
     border:1px solid var(--border);
@@ -399,6 +439,18 @@
     color:var(--text);
     display:flex;align-items:center;justify-content:center;
     flex-shrink:0;
+    opacity:1;
+    transform:scale(1);
+    transition:opacity .25s ease, transform .25s ease;
+  }
+  .btn-download.hidden{
+    opacity:0;
+    transform:scale(0.7);
+    pointer-events:none;
+    width:0;
+    height:0;
+    border:none;
+    margin:0;
   }
   .btn-download svg{width:20px;height:20px;}
 
@@ -579,7 +631,6 @@
   <div class="modal">
     <div class="modal-frame">
       <div class="modal-badges">
-        <span class="badge-pop"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h7l-1 8 11-14h-7l1-6z"/></svg>Populer</span>
         <span class="badge-ai"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.5 5.5L19 9l-5.5 1.5L12 16l-1.5-5.5L5 9l5.5-1.5z"/></svg>AI Generated</span>
       </div>
       <img id="modalImg" src="" alt="Preview prompt" />
@@ -597,7 +648,7 @@
           </button>
           <div class="generate-loading-bar" id="modalGenerateLoadingBar"></div>
         </div>
-        <button class="btn-download" onclick="copyModalPrompt()" title="Salin prompt">
+        <button class="btn-download hidden" id="modalCopyBtn" onclick="copyModalPrompt()" title="Salin prompt">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </button>
       </div>
@@ -729,20 +780,33 @@ window.openModal = function(id){
   document.getElementById("modalPrompt").classList.remove("show");
   const genBtn = document.getElementById("modalGenerateBtn");
   const genBar = document.getElementById("modalGenerateLoadingBar");
+  const copyBtn = document.getElementById("modalCopyBtn");
   if(genBtn) genBtn.disabled = false;
   if(genBar) genBar.classList.remove("active");
-  document.getElementById("modalBackdrop").classList.add("open");
+  if(copyBtn) copyBtn.classList.add("hidden");
+  const backdrop = document.getElementById("modalBackdrop");
+  backdrop.classList.remove("animate-in");
+  backdrop.classList.add("open");
   document.body.style.overflow = "hidden";
   updateModalFavIcon();
   window.scrollTo(0,0);
+  // dobel rAF supaya browser sempat commit state awal (opacity:0) sebelum transisi ke animate-in dimulai
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      backdrop.classList.add("animate-in");
+    });
+  });
 };
 window.closeModal = function(){
-  document.getElementById("modalBackdrop").classList.remove("open");
+  const backdrop = document.getElementById("modalBackdrop");
+  backdrop.classList.remove("animate-in");
+  backdrop.classList.remove("open");
   document.body.style.overflow = "";
 };
 window.revealModalPrompt = function(){
   const btn = document.getElementById("modalGenerateBtn");
   const bar = document.getElementById("modalGenerateLoadingBar");
+  const copyBtn = document.getElementById("modalCopyBtn");
   if(!btn || !bar) return;
   if(btn.disabled) return;
   btn.disabled = true;
@@ -751,7 +815,8 @@ window.revealModalPrompt = function(){
     document.getElementById("modalPrompt").classList.add("show");
     bar.classList.remove("active");
     btn.disabled = false;
-  }, 900);
+    if(copyBtn) copyBtn.classList.remove("hidden");
+  }, 5000);
 };
 window.copyModalPrompt = async function(){
   await copyText(modalPromptText);
